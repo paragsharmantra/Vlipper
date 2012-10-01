@@ -81,20 +81,17 @@
 
 - (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response
 {
-    NSHTTPURLResponse *HTTPResponse = (NSHTTPURLResponse *)response;
-    NSDictionary *fields = [HTTPResponse allHeaderFields];
-    NSString *cookie = [fields valueForKey:@"Set-Cookie"];
-    NSString *loginCookie =  [self stringBetweenString:@"CakeCookie[User][id]=" andString:@";" forSubject:cookie];
-    if(loginCookie != nil)
-    {
-        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
-        NSLog(@"Login Cookie : %@", loginCookie);
-        [prefs setObject:loginCookie forKey:@"LoginCookie"];
-        [signInViewDelegate signinSuccess];
-    }else {
-        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"Login Failed" delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
-        [alert show];
-    }
+//    NSHTTPURLResponse *HTTPResponse = (NSHTTPURLResponse *)response;
+//    NSDictionary *fields = [HTTPResponse allHeaderFields];
+//    NSString *cookie = [fields valueForKey:@"Set-Cookie"];
+//    NSString *loginCookie =  [self stringBetweenString:@"CakeCookie[User][id]=" andString:@";" forSubject:cookie];
+//    if(loginCookie != nil)
+//    {
+//        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+//        NSLog(@"Login Cookie : %@", loginCookie);
+//        [prefs setObject:loginCookie forKey:@"LoginCookie"];
+//        [signInViewDelegate signinSuccess];
+//    }
 }
 
 -(NSString*) stringBetweenString:(NSString *)start andString:(NSString *) end forSubject:(NSString *) subject {
@@ -116,10 +113,19 @@
     NSLog(@"%@", response);
     
     NSMutableDictionary *dict = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
-    NSMutableDictionary *user = [dict objectForKey:@"result"];
-    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
-    if([user objectForKey:@"name"] != nil)
-        [prefs setObject:[user objectForKey:@"name"] forKey:@"LoginCookie"];
+    NSNumber *status = [dict objectForKey:@"status"];
+    if([status intValue] == 200)
+    {
+        NSMutableDictionary *user = [dict objectForKey:@"result"];
+        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+        if([user objectForKey:@"name"] != nil){
+            [prefs setObject:[user objectForKey:@"name"] forKey:@"LoginCookie"];
+        }
+        [signInViewDelegate signinSuccess];
+    }else if([status intValue] == 400){
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"Login Failed" delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
+        [alert show];
+    }
 }
 
 - (void)viewDidUnload
@@ -141,7 +147,7 @@
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    NSString *CellIdentifier = [NSMutableString stringWithFormat:@"Cell-", indexPath.row];
+    NSString *CellIdentifier = [NSMutableString stringWithFormat:@"Cell-%i", indexPath.row];
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
     
     // Configure the cell...
